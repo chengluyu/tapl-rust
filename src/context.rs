@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use crate::r#type::Type;
+use crate::termtype::Type;
 
 pub enum Binding {
     // NameBind,

@@ -1,0 +1,39 @@
+use std::str::FromStr;
+use crate::term::Term;
+use crate::termtype::Type;
+
+grammar;
+
+pub Term: Term = {
+    "true" => Term::True,
+    "false" => Term::False,
+    <n: Num> => Term::Int(n),
+    <name: Ident> => Term::Var(name),
+    "if" <test: Term> "then" <consequent: Term> "else" <alternate: Term> => {
+        Term::If(Box::new(test), Box::new(consequent), Box::new(alternate))
+    },
+    "(" <t: Term> ")" => t,
+    "(" <param: Ident> ":" <param_type: TermType>  ")" "=>" <body: Term> => {
+        Term::Abs(param, Box::new(param_type), Box::new(body))
+    },
+    "[" <callee: Term> <argument: Term> "]" => {
+        Term::App(Box::new(callee), Box::new(argument))
+    },
+};
+
+pub TermType: Type = {
+    <t: TermTypeAtom> => t,
+    <left: TermType> "->" <right: TermTypeAtom> => {
+        Type::Arrow(Box::new(left), Box::new(right))
+    },
+};
+
+TermTypeAtom: Type = {
+    "Bool" => Type::Bool,
+    "Int" => Type::Int,
+    "(" <t: TermType> ")" => t,
+}
+
+Ident: String = <s: r"[a-zA-Z_][a-zA-Z_0-9]*"> => String::from(s);
+
+Num: i32 = <s:r"[0-9]+"> => i32::from_str(s).unwrap();

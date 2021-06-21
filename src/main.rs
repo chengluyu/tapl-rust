@@ -1,15 +1,16 @@
 #[macro_use]
-extern crate combine;
+extern crate lalrpop_util;
+
+lalrpop_mod!(pub parser);
 
 mod context;
 mod term;
-mod r#type;
+mod termtype;
 
-use combine::Parser;
 use context::Context;
-use r#type::Type;
+use termtype::Type;
 use rustyline::{error::ReadlineError, Editor};
-use term::term_parser;
+use parser::TermParser;
 
 fn main() {
     println!("Welcome to NotSimplyTyped.");
@@ -33,8 +34,8 @@ fn main() {
                         println!("Unknown command, ignore.")
                     }
                 } else {
-                    match term_parser().parse(line.as_str()) {
-                        Ok((term, _)) => match term.get_type(&mut context) {
+                    match TermParser::new().parse(line.as_str()) {
+                        Ok(term) => match term.get_type(&mut context) {
                             Ok(ty) => {
                                 println!("Type: {}", ty);
                                 last_type = Some(ty);

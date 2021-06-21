@@ -1,10 +1,4 @@
-use crate::{context::Context, r#type::{Type, type_parser}};
-use combine::{
-    choice, many1,
-    parser::char::{char, digit, letter, spaces, string},
-    stream::Stream,
-    ParseError, Parser,
-};
+use crate::{context::Context, termtype::Type};
 use std::fmt::{Display, Formatter, Result as FormatterResult};
 
 #[derive(Debug, PartialEq)]
@@ -90,128 +84,57 @@ impl Term {
     }
 }
 
-fn term_parser_<Input>() -> impl Parser<Input, Output = Term>
-where
-    Input: Stream<Token = char>,
-    Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
-{
-    let word = || many1(letter());
-    let integer = many1(digit()).map(|s: String| Term::Int(s.parse::<i32>().unwrap()));
-    let skip_spaces = || spaces().silent();
-    // let lex_char = |c| char(c).skip(skip_spaces());
-
-    let keyword_if = string("if").skip(skip_spaces());
-    let keyword_then = string("then").skip(skip_spaces());
-    let keyword_else = string("else").skip(skip_spaces());
-
-    let eif = (
-        keyword_if,
-        term_parser(),
-        skip_spaces(),
-        keyword_then,
-        term_parser(),
-        skip_spaces(),
-        keyword_else,
-        term_parser(),
-    )
-        .map(|t| Term::If(Box::new(t.1), Box::new(t.4), Box::new(t.7)));
-
-    let abs = (
-        char('('),
-        word().map(String::from),
-        skip_spaces(),
-        char(':'),
-        skip_spaces(),
-        type_parser(),
-        char(')'),
-        skip_spaces(),
-        string("=>"),
-        skip_spaces(),
-        term_parser(),
-    )
-        .map(|t| Term::Abs(t.1, Box::new(t.5), Box::new(t.10)));
-
-    let app = (char('['), term_parser(), spaces(), term_parser(), char(']'))
-        .map(|t| Term::App(Box::new(t.1), Box::new(t.3)));
-
-    choice((
-        string("true").map(|_| Term::True),
-        string("false").map(|_| Term::False),
-        integer,
-        eif,
-        word().map(|name| Term::Var(name)),
-        abs,
-        app,
-    ))
-}
-
-parser! {
-    pub fn term_parser[Input]()(Input) -> Term
-    where [Input: Stream<Token = char>]
-    {
-        term_parser_()
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::parser::TermParser;
 
     #[test]
-    fn parse() {
-        assert_eq!(term_parser().parse("true"), Ok((Term::True, "")));
-        assert_eq!(term_parser().parse("false"), Ok((Term::False, "")));
-        assert_eq!(term_parser().parse("x"), Ok((Term::Var("x".into()), "")));
-        assert_eq!(term_parser().parse("cool"), Ok((Term::Var("cool".into()), "")));
+    fn test_parse() {
+        assert_eq!(TermParser::new().parse("true"), Ok(Term::True));
+        assert_eq!(TermParser::new().parse("false"), Ok(Term::False));
+        assert_eq!(TermParser::new().parse("x"), Ok(Term::Var("x".into())));
         assert_eq!(
-            term_parser().parse("[x y]"),
-            Ok((
-                Term::App(
-                    Box::new(Term::Var("x".into())),
-                    Box::new(Term::Var("y".into()))
-                ),
-                ""
+            TermParser::new().parse("cool"),
+            Ok(Term::Var("cool".into()))
+        );
+        assert_eq!(
+            TermParser::new().parse("[x y]"),
+            Ok(Term::App(
+                Box::new(Term::Var("x".into())),
+                Box::new(Term::Var("y".into()))
             ))
         );
         assert_eq!(
-            term_parser().parse("(x: Bool) => y"),
-            Ok((
-                Term::Abs(
+            TermParser::new().parse("(x: Bool) => y"),
+            Ok(Term::Abs(
+                "x".into(),
+                Box::new(Type::Bool),
+                Box::new(Term::Var("y".into()))
+            ))
+        );
+        assert_eq!(
+            TermParser::new().parse("if x then y else z"),
+            Ok(Term::If(
+                Box::new(Term::Var("x".into())),
+                Box::new(Term::Var("y".into())),
+                Box::new(Term::Var("z".into()))
+            ))
+        );
+        assert_eq!(
+            TermParser::new().parse("if x then (x: Bool) => true else (x: Bool) => false"),
+            Ok(Term::If(
+                Box::new(Term::Var("x".into())),
+                Box::new(Term::Abs(
                     "x".into(),
                     Box::new(Type::Bool),
-                    Box::new(Term::Var("y".into()))
-                ),
-                ""
-            ))
-        );
-        assert_eq!(
-            term_parser().parse("if x then y else z"),
-            Ok((
-                Term::If(
-                    Box::new(Term::Var("x".into())),
-                    Box::new(Term::Var("y".into())),
-                    Box::new(Term::Var("z".into()))
-                ),
-                ""
-            ))
-        );
-        assert_eq!(
-            term_parser().parse("if x then (x: Bool) => true else (x: Bool) => false"),
-            Ok((
-                Term::If(
-                    Box::new(Term::Var("x".into())),
-                    Box::new(Term::Abs(
-                        "x".into(),
-                        Box::new(Type::Bool),
-                        Box::new(Term::True)
-                    )),
-                    Box::new(Term::Abs(
-                        "x".into(),
-                        Box::new(Type::Bool),
-                        Box::new(Term::False)
-                    ))
-                ),
-                ""
+                    Box::new(Term::True)
+                )),
+                Box::new(Term::Abs(
+                    "x".into(),
+                    Box::new(Type::Bool),
+                    Box::new(Term::False)
+                ))
             ))
         );
     }

@@ -5,7 +5,9 @@ authors = ["Luyu Cheng <chengluyu@live.cn>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[build-dependencies]
+lalrpop = "0.19.6"
 
 [dependencies]
-combine = "4.6.0"
+lalrpop-util = "0.19.6"
 rustyline = "8.2.0"
