@@ -2,7 +2,7 @@
 extern crate combine;
 use combine::{
     choice, many1,
-    parser::char::{char, letter, spaces, string},
+    parser::char::{char, digit, letter, spaces, string},
     sep_by,
     stream::Stream,
     ParseError, Parser,
@@ -52,6 +52,7 @@ impl Context {
 #[derive(Clone, Debug)]
 enum Type {
     Bool,
+    Int,
     Arrow(Box<Type>, Box<Type>),
 }
 
@@ -68,6 +69,7 @@ impl PartialEq for Type {
     fn eq(&self, other: &Self) -> bool {
         match self {
             Type::Bool => matches!(other, Type::Bool),
+            Type::Int => matches!(other, Type::Int),
             Type::Arrow(t1, t2) => match other {
                 Type::Arrow(s1, s2) => t1.eq(s1) && t2.eq(s2),
                 _ => false,
@@ -80,6 +82,7 @@ impl Display for Type {
     fn fmt(&self, f: &mut Formatter<'_>) -> DisplayResult {
         match self {
             Type::Bool => write!(f, "Bool"),
+            Type::Int => write!(f, "Int"),
             Type::Arrow(left, right) => {
                 if right.is_arrow() {
                     write!(f, "{} -> ({})", left, right)
@@ -95,6 +98,7 @@ impl Display for Type {
 enum Term {
     True,
     False,
+    Int(i32),
     If(Box<Term>, Box<Term>, Box<Term>),
     Var(String),
     Abs(String, Box<Type>, Box<Term>),
@@ -106,6 +110,7 @@ impl Display for Term {
         match self {
             Term::True => write!(f, "true"),
             Term::False => write!(f, "false"),
+            Term::Int(value) => write!(f, "{}", value),
             Term::If(test, consequent, alternate) => {
                 write!(f, "if {} then {} else {}", test, consequent, alternate)
             }
@@ -125,6 +130,7 @@ impl Term {
         let result = match self {
             Term::True => Ok(Type::Bool),
             Term::False => Ok(Type::Bool),
+            Term::Int(_) => Ok(Type::Int),
             Term::If(test, consequent, alternate) => match test.get_type(context)? {
                 Type::Bool => {
                     let consequent_type = consequent.get_type(context)?;
@@ -177,8 +183,9 @@ where
     Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
 {
     let keyword_bool = string("Bool").map(|_| Type::Bool);
+    let keyword_int = string("Int").map(|_| Type::Int);
     let parenthesized_type = (char('('), type_parser(), char(')')).map(|t| t.1);
-    let atom = choice((keyword_bool, parenthesized_type));
+    let atom = choice((keyword_bool, keyword_int, parenthesized_type));
     sep_by(atom, string("->").silent()).map(|ts: Vec<Type>| {
         *ts.iter()
             .map(|t| Box::new(t.clone()))
@@ -200,9 +207,8 @@ where
     Input: Stream<Token = char>,
     Input::Error: ParseError<Input::Token, Input::Range, Input::Position>,
 {
-    let vec = Vec::new();
-    vec.push(1u32);
     let word = || many1(letter());
+    let integer = many1(digit()).map(|s: String| Term::Int(s.parse::<i32>().unwrap()));
     let skip_spaces = || spaces().silent();
     // let lex_char = |c| char(c).skip(skip_spaces());
 
@@ -243,6 +249,7 @@ where
     choice((
         string("true").map(|_| Term::True),
         string("false").map(|_| Term::False),
+        integer,
         eif,
         word().map(|name| Term::Var(name)),
         abs,
