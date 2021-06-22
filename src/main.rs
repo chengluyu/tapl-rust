@@ -8,7 +8,7 @@ mod term;
 mod termtype;
 
 use context::Context;
-use termtype::Type;
+use termtype::TermType;
 use rustyline::{error::ReadlineError, Editor};
 use parser::TermParser;
 
@@ -16,7 +16,7 @@ fn main() {
     println!("Welcome to NotSimplyTyped.");
     let mut rl = Editor::<()>::new();
     let mut context = Context::new();
-    let mut last_type: Option<Type> = None;
+    let mut last_type: Option<TermType> = None;
     loop {
         let readline = rl.readline("> ");
         match readline {

@@ -1,7 +1,7 @@
 use std::str::FromStr;
 use std::collections::HashMap;
 use crate::term::Term;
-use crate::termtype::Type;
+use crate::termtype::TermType;
 
 grammar;
 
@@ -30,19 +30,19 @@ ProjectableTerm: Term = {
     "{" <fields: Comma<Term>> "}" => Term::Record(fields),
 }
 
-pub TermType: Type = {
+pub TermType: TermType = {
     <t: TermTypeAtom> => t,
     <left: TermType> "->" <right: TermTypeAtom> => {
-        Type::Arrow(Box::new(left), Box::new(right))
+        TermType::Arrow(Box::new(left), Box::new(right))
     },
 };
 
-TermTypeAtom: Type = {
-    "Bool" => Type::Bool,
-    "Int" => Type::Int,
-    "Any" => Type::Top,
+TermTypeAtom: TermType = {
+    "Bool" => TermType::Bool,
+    "Int" => TermType::Int,
+    "Any" => TermType::Top,
     "(" <t: TermType> ")" => t,
-    "{" <fields: Comma<TermType>> "}" => Type::Record(fields),
+    "{" <fields: Comma<TermType>> "}" => TermType::Record(fields),
 };
 
 Comma<T>: HashMap<String, T> = {

@@ -1,4 +1,4 @@
-use crate::{context::Context, termtype::Type};
+use crate::{context::Context, termtype::TermType};
 use std::{borrow::Borrow, collections::HashMap, fmt::{Display, Formatter, Result as FormatterResult}};
 
 #[derive(Debug, PartialEq)]
@@ -10,7 +10,7 @@ pub enum Term {
     If(Box<Term>, Box<Term>, Box<Term>),
     Proj(Box<Term>, String),
     Var(String),
-    Abs(String, Box<Type>, Box<Term>),
+    Abs(String, Box<TermType>, Box<Term>),
     App(Box<Term>, Box<Term>),
 }
 
@@ -46,21 +46,21 @@ impl Display for Term {
 }
 
 impl Term {
-    pub fn get_type(&self, context: &mut Context) -> Result<Type, String> {
+    pub fn get_type(&self, context: &mut Context) -> Result<TermType, String> {
         let result = match self {
-            Term::True => Ok(Type::Bool),
-            Term::False => Ok(Type::Bool),
-            Term::Int(_) => Ok(Type::Int),
+            Term::True => Ok(TermType::Bool),
+            Term::False => Ok(TermType::Bool),
+            Term::Int(_) => Ok(TermType::Int),
             Term::Record(fields) => {
                 let mut type_fields = HashMap::new();
                 for (field, field_value) in fields {
                     let field_type = field_value.get_type(context)?;
                     type_fields.entry(field.clone()).or_insert(field_type);
                 }
-                Ok(Type::Record(type_fields))
+                Ok(TermType::Record(type_fields))
             }
             Term::If(test, consequent, alternate) => match test.get_type(context)? {
-                Type::Bool => {
+                TermType::Bool => {
                     let consequent_type = consequent.get_type(context)?;
                     let alternate_type = alternate.get_type(context)?;
                     if consequent_type == alternate_type {
@@ -76,7 +76,7 @@ impl Term {
             },
             Term::Proj(target, field) => {
                 let target_type = target.get_type(context)?;
-                if let Type::Record(entries) = &target_type {
+                if let TermType::Record(entries) = &target_type {
                     if let Some(field_type) = entries.get(field) {
                         Ok(field_type.clone())
                     } else {
@@ -89,7 +89,7 @@ impl Term {
             Term::Var(name) => context.get_type(name.clone()),
             Term::Abs(param, param_type, body_term) => {
                 context.add_binding(param.clone(), *param_type.clone());
-                let result = Ok(Type::Arrow(
+                let result = Ok(TermType::Arrow(
                     param_type.clone(),
                     Box::new(body_term.get_type(context)?),
                 ));
@@ -99,7 +99,7 @@ impl Term {
             Term::App(callee, argument) => {
                 let argument_type = argument.get_type(context)?;
                 match callee.get_type(context)? {
-                    Type::Arrow(param_type, body_type) => {
+                    TermType::Arrow(param_type, body_type) => {
                         if argument_type.is_subtype(param_type.borrow()) {
                             Ok(*body_type.clone())
                         } else {
@@ -142,7 +142,7 @@ mod tests {
             TermParser::new().parse("(x: Bool) => y"),
             Ok(Term::Abs(
                 "x".into(),
-                Box::new(Type::Bool),
+                Box::new(TermType::Bool),
                 Box::new(Term::Var("y".into()))
             ))
         );
@@ -160,12 +160,12 @@ mod tests {
                 Box::new(Term::Var("x".into())),
                 Box::new(Term::Abs(
                     "x".into(),
-                    Box::new(Type::Bool),
+                    Box::new(TermType::Bool),
                     Box::new(Term::True)
                 )),
                 Box::new(Term::Abs(
                     "x".into(),
-                    Box::new(Type::Bool),
+                    Box::new(TermType::Bool),
                     Box::new(Term::False)
                 ))
             ))

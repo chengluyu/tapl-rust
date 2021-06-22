@@ -1,10 +1,10 @@
 use std::collections::VecDeque;
 
-use crate::termtype::Type;
+use crate::termtype::TermType;
 
 pub enum Binding {
     // NameBind,
-    VarBind(Type),
+    VarBind(TermType),
 }
 
 pub struct Context(pub VecDeque<(String, Binding)>);
@@ -14,14 +14,14 @@ impl Context {
         Context(VecDeque::new())
     }
 
-    pub fn get_type(&self, name: String) -> Result<Type, String> {
+    pub fn get_type(&self, name: String) -> Result<TermType, String> {
         match self.0.iter().find(|(t, _)| t.eq(&name)) {
             Some((_, Binding::VarBind(ty))) => Ok(ty.clone()),
             _ => Err(format!("cannot find binding {:?}", name)),
         }
     }
 
-    pub fn add_binding(&mut self, name: String, typ: Type) {
+    pub fn add_binding(&mut self, name: String, typ: TermType) {
         self.0.push_front((name, Binding::VarBind(typ)));
     }
 
