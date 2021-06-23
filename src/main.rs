@@ -7,7 +7,7 @@ mod context;
 mod term;
 mod termtype;
 
-use context::Context;
+use context::{Binding, Context};
 use parser::TermParser;
 use rustyline::{error::ReadlineError, Editor};
 use termtype::TermType;
@@ -29,6 +29,10 @@ fn main() {
                         match &last_type {
                             Some(ty) => context.add_binding(name.into(), ty.clone()),
                             None => println!("No last type"),
+                        }
+                    } else if line.starts_with(".list") {
+                        for (name, Binding::VarBind(binding_type)) in context.0.iter() {
+                            println!("{} :: {}", name, binding_type)
                         }
                     } else {
                         println!("Unknown command, ignore.")
