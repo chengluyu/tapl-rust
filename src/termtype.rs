@@ -33,9 +33,10 @@ impl TermType {
                         }
                     })
                 }
-                (TermType::Arrow(self_left, self_right), TermType::Arrow(other_left, other_right)) => {
-                    self_left.is_subtype(other_left) && self_right.is_subtype(other_right)
-                }
+                (
+                    TermType::Arrow(self_left, self_right),
+                    TermType::Arrow(other_left, other_right),
+                ) => self_left.is_subtype(other_left) && self_right.is_subtype(other_right),
                 _ => false,
             }
     }
@@ -105,7 +106,10 @@ mod tests {
     fn test_subtype_top() {
         assert!(TermType::Bool.is_subtype(&TermType::Top));
         assert!(TermType::Int.is_subtype(&TermType::Top));
-        assert!(TermType::Arrow(Box::new(TermType::Int), Box::new(TermType::Int)).is_subtype(&TermType::Top));
+        assert!(
+            TermType::Arrow(Box::new(TermType::Int), Box::new(TermType::Int))
+                .is_subtype(&TermType::Top)
+        );
         let mut entries = HashMap::new();
         entries.entry("x".into()).or_insert(TermType::Int);
         entries.entry("y".into()).or_insert(TermType::Int);
@@ -152,12 +156,18 @@ mod tests {
         assert_eq!(TermTypeParser::new().parse("Bool"), Ok(TermType::Bool));
         assert_eq!(
             TermTypeParser::new().parse("Bool -> Bool"),
-            Ok(TermType::Arrow(Box::new(TermType::Bool), Box::new(TermType::Bool)))
+            Ok(TermType::Arrow(
+                Box::new(TermType::Bool),
+                Box::new(TermType::Bool)
+            ))
         );
         assert_eq!(
             TermTypeParser::new().parse("(Int -> Bool) -> Bool"),
             Ok(TermType::Arrow(
-                Box::new(TermType::Arrow(Box::new(TermType::Int), Box::new(TermType::Bool))),
+                Box::new(TermType::Arrow(
+                    Box::new(TermType::Int),
+                    Box::new(TermType::Bool)
+                )),
                 Box::new(TermType::Bool)
             ))
         );
@@ -165,7 +175,10 @@ mod tests {
             TermTypeParser::new().parse("Int -> (Bool -> Bool)"),
             Ok(TermType::Arrow(
                 Box::new(TermType::Int),
-                Box::new(TermType::Arrow(Box::new(TermType::Bool), Box::new(TermType::Bool)))
+                Box::new(TermType::Arrow(
+                    Box::new(TermType::Bool),
+                    Box::new(TermType::Bool)
+                ))
             ))
         );
     }

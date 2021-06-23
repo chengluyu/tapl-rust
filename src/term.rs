@@ -1,5 +1,9 @@
 use crate::{context::Context, termtype::TermType};
-use std::{borrow::Borrow, collections::HashMap, fmt::{Display, Formatter, Result as FormatterResult}};
+use std::{
+    borrow::Borrow,
+    collections::HashMap,
+    fmt::{Display, Formatter, Result as FormatterResult},
+};
 
 #[derive(Debug, PartialEq)]
 pub enum Term {

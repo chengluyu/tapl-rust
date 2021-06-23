@@ -8,9 +8,9 @@ mod term;
 mod termtype;
 
 use context::Context;
-use termtype::TermType;
-use rustyline::{error::ReadlineError, Editor};
 use parser::TermParser;
+use rustyline::{error::ReadlineError, Editor};
+use termtype::TermType;
 
 fn main() {
     println!("Welcome to NotSimplyTyped.");
