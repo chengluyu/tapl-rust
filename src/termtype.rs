@@ -54,10 +54,11 @@ impl PartialEq for TermType {
                 if let TermType::Record(that_fields) = other {
                     this_fields.len() == that_fields.len()
                         && this_fields.iter().all(|(field, this_field_type)| {
-                            that_fields.get(field).map_or_else(
-                                || false,
-                                |that_field_type| this_field_type == that_field_type,
-                            )
+                            if let Some(that_field_type) = that_fields.get(field) {
+                                this_field_type == that_field_type
+                            } else {
+                                false
+                            }
                         })
                 } else {
                     false
